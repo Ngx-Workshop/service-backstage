@@ -1,0 +1,30 @@
+{
+  "name": "@tmdjr/seed-service-nestjs-contracts",
+  "version": "0.0.1",
+  "description": "Types & runtime enums generated from NGX seed-service-nestjs spec",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rm -rf dist src/seed-service-nestjs.types.ts src/models src/core src/schemas",
+    "gen:types": "openapi-typescript ../../openapi.json --output ./src/seed-service-nestjs.types.ts",
+    "gen:models": "openapi --input ../../openapi.json --output ./src --client none --exportCore false --exportServices false --exportModels true --useUnionTypes true",
+    "gen": "npm run gen:types && npm run gen:models",
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run clean && npm run gen && npm run build"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.5.1",
+    "typescript": "^5.7.3",
+    "openapi-typescript-codegen": "^0.29.0"
+  }
+}

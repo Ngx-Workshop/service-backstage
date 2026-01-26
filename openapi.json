@@ -1,0 +1,421 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/example-crud/auth-test": {
+      "get": {
+        "operationId": "ExampleCrudController_authTest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTestDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example Crud"
+        ]
+      }
+    },
+    "/example-crud": {
+      "post": {
+        "operationId": "ExampleCrudController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExampleMongodbDocDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example Crud"
+        ]
+      },
+      "get": {
+        "operationId": "ExampleCrudController_findAll",
+        "parameters": [
+          {
+            "name": "archived",
+            "required": false,
+            "in": "query",
+            "description": "Filter by archived status",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example Crud"
+        ]
+      }
+    },
+    "/example-crud/{id}": {
+      "get": {
+        "operationId": "ExampleCrudController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example Crud"
+        ]
+      },
+      "patch": {
+        "operationId": "ExampleCrudController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExampleMongodbDocDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example Crud"
+        ]
+      },
+      "delete": {
+        "operationId": "ExampleCrudController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Example Crud"
+        ]
+      }
+    },
+    "/example-crud/name/{name}": {
+      "get": {
+        "operationId": "ExampleCrudController_findByName",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example Crud"
+        ]
+      }
+    },
+    "/example-crud/{id}/archive": {
+      "patch": {
+        "operationId": "ExampleCrudController_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example Crud"
+        ]
+      }
+    },
+    "/example-crud/{id}/unarchive": {
+      "patch": {
+        "operationId": "ExampleCrudController_unarchive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleMongodbDocDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example Crud"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "NGX seed-service-nestjs API",
+    "description": "",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "AuthTestDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ExampleMongodbDocObjectDto": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "zip": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "street",
+          "city",
+          "state",
+          "zip"
+        ]
+      },
+      "CreateExampleMongodbDocDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "SOME_ENUM",
+              "SOME_OTHER_ENUM"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "exampleMongodbDocObject": {
+            "$ref": "#/components/schemas/ExampleMongodbDocObjectDto"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      },
+      "ExampleMongodbDocDto": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "SOME_ENUM",
+              "SOME_OTHER_ENUM"
+            ]
+          },
+          "version": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "exampleMongodbDocObject": {
+            "$ref": "#/components/schemas/ExampleMongodbDocObjectDto"
+          },
+          "__v": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "type",
+          "version",
+          "description",
+          "lastUpdated",
+          "archived",
+          "__v"
+        ]
+      },
+      "UpdateExampleMongodbDocDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "SOME_ENUM",
+              "SOME_OTHER_ENUM"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "exampleMongodbDocObject": {
+            "$ref": "#/components/schemas/ExampleMongodbDocObjectDto"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

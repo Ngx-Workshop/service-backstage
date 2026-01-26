@@ -1,0 +1,18 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  seed-service-nestjs:
+    build: .
+    container_name: seed-service-nestjs
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    env_file:
+      - .env
+    networks:
+      - ngx-net
+
+networks:
+  ngx-net:
+    external: true
