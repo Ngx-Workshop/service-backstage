@@ -95,6 +95,7 @@ jobs:
             echo "PORT=${{ secrets.PORT }}" > .env
             echo "AUTH_BASE_URL=${{ secrets.AUTH_BASE_URL }}" >> .env
             echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
+            echo "WORKSHOP_GITHUB_TOKEN=${{ secrets.WORKSHOP_GITHUB_TOKEN }}" >> .env
 
             echo "🔗 Connecting peer services to ngx-net (ignore errors if not present)..."
             docker network connect ngx-net ngx-workshop-bff 2>/dev/null || true
