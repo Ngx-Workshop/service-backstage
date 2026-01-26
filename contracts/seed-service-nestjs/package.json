@@ -1,7 +1,7 @@
 {
-  "name": "@tmdjr/seed-service-nestjs-contracts",
+  "name": "@tmdjr/backstage-contracts",
   "version": "0.0.1",
-  "description": "Types & runtime enums generated from NGX seed-service-nestjs spec",
+  "description": "Types & runtime enums generated from NGX backstage spec",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -15,8 +15,8 @@
     "access": "public"
   },
   "scripts": {
-    "clean": "rm -rf dist src/seed-service-nestjs.types.ts src/models src/core src/schemas",
-    "gen:types": "openapi-typescript ../../openapi.json --output ./src/seed-service-nestjs.types.ts",
+    "clean": "rm -rf dist src/backstage.types.ts src/models src/core src/schemas",
+    "gen:types": "openapi-typescript ../../openapi.json --output ./src/backstage.types.ts",
     "gen:models": "openapi --input ../../openapi.json --output ./src --client none --exportCore false --exportServices false --exportModels true --useUnionTypes true",
     "gen": "npm run gen:types && npm run gen:models",
     "build": "tsc -p tsconfig.build.json",

@@ -2,12 +2,12 @@
 version: '3.8'
 
 services:
-  seed-service-nestjs:
+  backstage:
     build: .
-    container_name: seed-service-nestjs
+    container_name: backstage
     restart: unless-stopped
     ports:
-      - "3003:3003"
+      - "3008:3008"
     env_file:
       - .env
     networks:

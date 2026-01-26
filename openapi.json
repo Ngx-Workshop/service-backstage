@@ -266,7 +266,7 @@
     }
   },
   "info": {
-    "title": "NGX seed-service-nestjs API",
+    "title": "NGX backstage API",
     "description": "",
     "version": "1.0.0",
     "contact": {}

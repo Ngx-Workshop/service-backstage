@@ -1,4 +1,4 @@
-name: Deploy Ngx seed-service-nestjs
+name: Deploy Ngx backstage
 
 on:
   push:
@@ -29,9 +29,9 @@ jobs:
           npm run build
           npm run openapi
 
-      - name: Build contracts (seed-service-nestjs)
+      - name: Build contracts (backstage)
         run: |
-          cd contracts/seed-service-nestjs
+          cd contracts/backstage
           npm install
           npm run gen
           npm run build
@@ -44,11 +44,11 @@ jobs:
           scope: '@tmdjr'
           always-auth: true
 
-      - name: Publish contracts to NPM (seed-service-nestjs)
+      - name: Publish contracts to NPM (backstage)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          cd contracts/seed-service-nestjs
+          cd contracts/backstage
 
           # Deterministic version: "<major>.<minor>.<github.run_number>"
           node - <<'NODE'
@@ -67,7 +67,7 @@ jobs:
       - name: Upload OpenAPI artifact
         uses: actions/upload-artifact@v4
         with:
-          name: seed-service-nestjs-openapi
+          name: backstage-openapi
           path: openapi.json
 
       - name: Copy to Droplet
@@ -77,7 +77,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: '.'
-          target: '/opt/ngx-nestjs-services/seed-service-nestjs'
+          target: '/opt/ngx-nestjs-services/backstage'
 
       - name: SSH and Deploy
         uses: appleboy/ssh-action@master
@@ -86,7 +86,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /opt/ngx-nestjs-services/seed-service-nestjs
+            cd /opt/ngx-nestjs-services/backstage
 
             echo "🌐 Ensuring shared Docker network exists..."
             docker network ls | grep -q "ngx-net" || docker network create ngx-net
@@ -101,13 +101,13 @@ jobs:
             docker network connect ngx-net ngx-auth-service 2>/dev/null || true
 
             echo "🚀 Building and starting container..."
-            docker build -t seed-service-nestjs .
-            docker stop seed-service-nestjs || true
-            docker rm seed-service-nestjs || true
+            docker build -t backstage .
+            docker stop backstage || true
+            docker rm backstage || true
             docker run -d \
-              --name seed-service-nestjs \
+              --name backstage \
               --env-file .env \
               --network ngx-net \
               --restart unless-stopped \
-              -p 3003:3003 \
-              seed-service-nestjs
+              -p 3008:3008 \
+              backstage

@@ -1,5 +1,5 @@
 {
-  "name": "seed-service-nestjs",
+  "name": "backstage",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -20,9 +20,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "openapi": "node dist/swagger.js",
     "postbuild": "node dist/swagger.js",
-    "contracts:seed-service-nestjs:gen": "npm --prefix ./contracts/seed-service-nestjs run gen",
-    "contracts:seed-service-nestjs:build": "npm --prefix ./contracts/seed-service-nestjs run build",
-    "contracts:seed-service-nestjs:publish": "npm --prefix ./contracts/seed-service-nestjs publish --access public"
+    "contracts:backstage:gen": "npm --prefix ./contracts/backstage run gen",
+    "contracts:backstage:build": "npm --prefix ./contracts/backstage run build",
+    "contracts:backstage:publish": "npm --prefix ./contracts/backstage publish --access public"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
