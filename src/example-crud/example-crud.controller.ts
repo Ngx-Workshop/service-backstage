@@ -48,7 +48,7 @@ export class ExampleCrudController {
   @UseGuards(RemoteAuthGuard)
   @ApiOkResponse({ type: AuthTestDto })
   helloWorld() {
-    return { message: 'Hello, World!' };
+    return { message: 'Hello, World! - 1' };
   }
 
   @Post()
