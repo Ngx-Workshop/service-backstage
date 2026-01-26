@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { BackstageCatalogModule } from './backstage-catalog/backstage-catalog.module';
 import { ExampleMongodbDocModule } from './example-crud/example-crud.module';
 
 const DB_IMPORTS =
@@ -23,6 +24,7 @@ const DB_IMPORTS =
     }),
     ...DB_IMPORTS,
     ExampleMongodbDocModule,
+    BackstageCatalogModule,
   ],
   controllers: [],
   providers: [],

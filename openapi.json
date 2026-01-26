@@ -22,6 +22,27 @@
         ]
       }
     },
+    "/example-crud/hello-world": {
+      "get": {
+        "operationId": "ExampleCrudController_helloWorld",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTestDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Example Crud"
+        ]
+      }
+    },
     "/example-crud": {
       "post": {
         "operationId": "ExampleCrudController_create",
@@ -263,6 +284,289 @@
           "Example Crud"
         ]
       }
+    },
+    "/backstage/services": {
+      "get": {
+        "operationId": "BackstageCatalogController_list",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search by name, description, or topics",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "required": false,
+            "in": "query",
+            "description": "Comma-separated list of blobs to include (readme,openapi,runbook,metadata)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "refresh",
+            "required": false,
+            "in": "query",
+            "description": "Trigger a refresh for the returned items",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceSummaryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List cached backstage services",
+        "tags": [
+          "Backstage Catalog"
+        ]
+      }
+    },
+    "/backstage/services/{repo}": {
+      "get": {
+        "operationId": "BackstageCatalogController_getOne",
+        "parameters": [
+          {
+            "name": "repo",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "refresh",
+            "required": false,
+            "in": "query",
+            "description": "Trigger a refresh before returning details",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get full detail for a specific repo",
+        "tags": [
+          "Backstage Catalog"
+        ]
+      }
+    },
+    "/backstage/sync": {
+      "post": {
+        "operationId": "BackstageCatalogController_sync",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Backstage Catalog"
+        ]
+      }
+    },
+    "/backstage/services/{repo}/readme": {
+      "get": {
+        "operationId": "BackstageCatalogController_readme",
+        "parameters": [
+          {
+            "name": "repo",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "refresh",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Backstage Catalog"
+        ]
+      }
+    },
+    "/backstage/services/{repo}/openapi": {
+      "get": {
+        "operationId": "BackstageCatalogController_openapi",
+        "parameters": [
+          {
+            "name": "repo",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "refresh",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Backstage Catalog"
+        ]
+      }
+    },
+    "/backstage/services/{repo}/runbook": {
+      "get": {
+        "operationId": "BackstageCatalogController_runbook",
+        "parameters": [
+          {
+            "name": "repo",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "refresh",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Backstage Catalog"
+        ]
+      }
+    },
+    "/backstage/services/{repo}/metadata": {
+      "get": {
+        "operationId": "BackstageCatalogController_metadata",
+        "parameters": [
+          {
+            "name": "repo",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "refresh",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Backstage Catalog"
+        ]
+      }
     }
   },
   "info": {
@@ -415,6 +719,196 @@
             "format": "date-time"
           }
         }
+      },
+      "DocBlobDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Raw content of the document"
+          },
+          "sha": {
+            "type": "string",
+            "description": "Git SHA of the fetched file"
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "yaml",
+              "json",
+              "markdown"
+            ]
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "ServiceSummaryDto": {
+        "type": "object",
+        "properties": {
+          "repoName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultBranch": {
+            "type": "string"
+          },
+          "htmlUrl": {
+            "type": "string"
+          },
+          "lastSyncAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "syncStatus": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "ok",
+              "partial",
+              "failed",
+              "rate_limited"
+            ]
+          },
+          "syncError": {
+            "type": "string"
+          },
+          "readme": {
+            "$ref": "#/components/schemas/DocBlobDto"
+          },
+          "openapi": {
+            "$ref": "#/components/schemas/DocBlobDto"
+          },
+          "runbook": {
+            "$ref": "#/components/schemas/DocBlobDto"
+          },
+          "serviceMetadata": {
+            "$ref": "#/components/schemas/DocBlobDto"
+          }
+        },
+        "required": [
+          "repoName",
+          "topics",
+          "syncStatus"
+        ]
+      },
+      "ServiceDetailDto": {
+        "type": "object",
+        "properties": {
+          "repoName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultBranch": {
+            "type": "string"
+          },
+          "htmlUrl": {
+            "type": "string"
+          },
+          "lastSyncAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "syncStatus": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "ok",
+              "partial",
+              "failed",
+              "rate_limited"
+            ]
+          },
+          "syncError": {
+            "type": "string"
+          },
+          "readme": {
+            "$ref": "#/components/schemas/DocBlobDto"
+          },
+          "openapi": {
+            "$ref": "#/components/schemas/DocBlobDto"
+          },
+          "runbook": {
+            "$ref": "#/components/schemas/DocBlobDto"
+          },
+          "serviceMetadata": {
+            "$ref": "#/components/schemas/DocBlobDto"
+          }
+        },
+        "required": [
+          "repoName",
+          "topics",
+          "syncStatus"
+        ]
+      },
+      "SyncRequestDto": {
+        "type": "object",
+        "properties": {
+          "repos": {
+            "description": "Optional list of repo names to sync; defaults to all repos in the org",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "force": {
+            "type": "boolean",
+            "description": "Force re-fetch even if SHA is unchanged"
+          }
+        }
+      },
+      "SyncResponseDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "succeeded": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          },
+          "durationMs": {
+            "type": "number",
+            "description": "Duration in milliseconds"
+          },
+          "failures": {
+            "description": "Repos that failed to sync (with error message inline if available)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "succeeded",
+          "failed",
+          "durationMs",
+          "failures"
+        ]
       }
     }
   }
