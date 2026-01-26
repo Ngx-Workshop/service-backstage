@@ -44,6 +44,13 @@ export class ExampleCrudController {
     return this.exampleCrudService.authTest();
   }
 
+  @Get('hello-world')
+  @UseGuards(RemoteAuthGuard)
+  @ApiOkResponse({ type: AuthTestDto })
+  helloWorld() {
+    return { message: 'Hello, World!' };
+  }
+
   @Post()
   @ApiCreatedResponse({ type: ExampleMongodbDocDto })
   create(@Body() createExampleMongodbDocDto: CreateExampleMongodbDocDto) {
