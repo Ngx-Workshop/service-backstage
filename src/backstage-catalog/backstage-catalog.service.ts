@@ -143,7 +143,7 @@ export class BackstageCatalogService {
       $or: [
         { repoName: regex },
         { description: regex },
-        { topics: { $elemMatch: regex } },
+        { topics: { $elemMatch: { $regex: regex } } },
       ],
     };
   }
