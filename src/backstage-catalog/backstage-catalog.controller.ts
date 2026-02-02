@@ -26,7 +26,7 @@ import { SyncRequestDto, SyncResponseDto } from './dto/sync.dto';
 
 @ApiTags('Backstage Catalog')
 @ApiBearerAuth()
-@Controller('backstage')
+@Controller()
 export class BackstageCatalogController {
   constructor(private readonly service: BackstageCatalogService) {}
 

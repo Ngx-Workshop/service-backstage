@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/backstage/services": {
+    "/services": {
       "get": {
         "operationId": "BackstageCatalogController_list",
         "parameters": [
@@ -59,7 +59,7 @@
         ]
       }
     },
-    "/backstage/services/{repo}": {
+    "/services/{repo}": {
       "get": {
         "operationId": "BackstageCatalogController_getOne",
         "parameters": [
@@ -104,7 +104,7 @@
         ]
       }
     },
-    "/backstage/sync": {
+    "/sync": {
       "post": {
         "operationId": "BackstageCatalogController_sync",
         "parameters": [],
@@ -140,7 +140,7 @@
         ]
       }
     },
-    "/backstage/services/{repo}/readme": {
+    "/services/{repo}/readme": {
       "get": {
         "operationId": "BackstageCatalogController_readme",
         "parameters": [
@@ -176,7 +176,7 @@
         ]
       }
     },
-    "/backstage/services/{repo}/openapi": {
+    "/services/{repo}/openapi": {
       "get": {
         "operationId": "BackstageCatalogController_openapi",
         "parameters": [
@@ -212,7 +212,7 @@
         ]
       }
     },
-    "/backstage/services/{repo}/runbook": {
+    "/services/{repo}/runbook": {
       "get": {
         "operationId": "BackstageCatalogController_runbook",
         "parameters": [
@@ -248,7 +248,7 @@
         ]
       }
     },
-    "/backstage/services/{repo}/metadata": {
+    "/services/{repo}/metadata": {
       "get": {
         "operationId": "BackstageCatalogController_metadata",
         "parameters": [
