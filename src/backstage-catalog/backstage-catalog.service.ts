@@ -266,8 +266,7 @@ export class BackstageCatalogService {
         mediaType: { previews: ['mercy'] },
       });
 
-      this.logger.log(`Syncing repo: ${repoName}`);
-      this.logger.debug(`Repo data: ${JSON.stringify(repo.data)}`);
+      this.logger.debug(`Repo data: ${JSON.stringify(repo)}`);
 
       const existing = await this.repoModel.findOne({ repoName }).exec();
 
