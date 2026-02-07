@@ -58,7 +58,6 @@ export class BackstageRepoCache extends Document {
 export const BackstageRepoCacheSchema =
   SchemaFactory.createForClass(BackstageRepoCache);
 
-BackstageRepoCacheSchema.index({ repoName: 1 }, { unique: true });
 BackstageRepoCacheSchema.index({
   repoName: 'text',
   description: 'text',

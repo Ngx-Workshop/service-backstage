@@ -372,7 +372,7 @@ export class BackstageCatalogService {
 
   private async fetchLanguages(repo: string): Promise<Record<string, number>> {
     try {
-      const res = await this.github.rest.repos.getLanguages({
+      const res = await this.github.rest.repos.listLanguages({
         owner: this.org,
         repo,
       });
