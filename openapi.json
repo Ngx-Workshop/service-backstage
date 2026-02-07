@@ -344,6 +344,15 @@
           "htmlUrl": {
             "type": "string"
           },
+          "languages": {
+            "type": "object"
+          },
+          "deviconLanguages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "lastSyncAt": {
             "type": "string",
             "format": "date-time"
@@ -400,6 +409,15 @@
           },
           "htmlUrl": {
             "type": "string"
+          },
+          "languages": {
+            "type": "object"
+          },
+          "deviconLanguages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "lastSyncAt": {
             "type": "string",

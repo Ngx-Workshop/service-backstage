@@ -25,6 +25,9 @@ export class BackstageRepoCache extends Document {
   @Prop({ type: Object })
   languages?: Record<string, number>;
 
+  @Prop({ type: [String], default: [] })
+  deviconLanguages: string[];
+
   @Prop() defaultBranch?: string;
 
   @Prop() htmlUrl?: string;

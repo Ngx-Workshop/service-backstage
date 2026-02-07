@@ -15,6 +15,8 @@ export class ServiceSummaryDto {
   @ApiPropertyOptional({ type: Object })
   languages?: Record<string, number>;
 
+  @ApiPropertyOptional({ type: [String] }) deviconLanguages: string[];
+
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   lastSyncAt?: string;
 

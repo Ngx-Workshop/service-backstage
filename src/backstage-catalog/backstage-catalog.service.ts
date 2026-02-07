@@ -19,6 +19,8 @@ import {
   DocFormat,
 } from './schemas/backstage-repo-cache.schema';
 
+import { programLanguageMap } from './data/program-language-map';
+
 export const GITHUB_CLIENT_TOKEN = 'GITHUB_CLIENT_TOKEN';
 
 const OPENAPI_PATHS = [
@@ -161,6 +163,7 @@ export class BackstageCatalogService {
       defaultBranch: obj.defaultBranch,
       htmlUrl: obj.htmlUrl,
       languages: obj.languages,
+      deviconLanguages: obj.deviconLanguages,
       lastSyncAt: obj.lastSyncAt?.toISOString(),
       syncStatus: obj.syncStatus,
       syncError: obj.syncError,
@@ -188,6 +191,7 @@ export class BackstageCatalogService {
       defaultBranch: obj.defaultBranch,
       htmlUrl: obj.htmlUrl,
       languages: obj.languages,
+      deviconLanguages: obj.deviconLanguages,
       lastSyncAt: obj.lastSyncAt?.toISOString(),
       syncStatus: obj.syncStatus,
       syncError: obj.syncError,
@@ -273,6 +277,25 @@ export class BackstageCatalogService {
 
       const languages = await this.fetchLanguages(repoName);
 
+      const deviconLanguages = Object.keys(languages).reduce((acc, lang) => {
+        const mapped = programLanguageMap[lang.toLowerCase()];
+        if (mapped) {
+          acc[mapped] = languages[lang];
+        }
+        return acc;
+      }, [] as string[]);
+
+      // const githubToDevicon = Object.fromEntries(
+      //   Object.entries(programLanguageMap).map(([devicon, github]) => [
+      //     github,
+      //     devicon,
+      //   ])
+      // );
+
+      // const deviconLanguages = languages.map(
+      //   (language) => githubToDevicon[language] ?? null
+      // );
+
       const readme = await this.fetchReadme(
         repoName,
         existing?.readme,
@@ -305,6 +328,7 @@ export class BackstageCatalogService {
         defaultBranch: repo.default_branch,
         htmlUrl: repo.html_url,
         languages,
+        deviconLanguages,
         lastSyncAt: new Date(),
         readme,
         openapi,
