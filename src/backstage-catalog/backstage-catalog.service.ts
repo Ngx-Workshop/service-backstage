@@ -11,6 +11,7 @@ import {
 } from './dto/list-services-query.dto';
 import { ServiceDetailDto, ServiceSummaryDto } from './dto/service-summary.dto';
 import { SyncRequestDto, SyncResponseDto } from './dto/sync.dto';
+import { GithubRepository } from './github.interface';
 import {
   BackstageRepoCache,
   BackstageRepoCacheDocument,
@@ -159,6 +160,7 @@ export class BackstageCatalogService {
       topics: obj.topics || [],
       defaultBranch: obj.defaultBranch,
       htmlUrl: obj.htmlUrl,
+      languages: obj.languages,
       lastSyncAt: obj.lastSyncAt?.toISOString(),
       syncStatus: obj.syncStatus,
       syncError: obj.syncError,
@@ -185,6 +187,7 @@ export class BackstageCatalogService {
       topics: obj.topics || [],
       defaultBranch: obj.defaultBranch,
       htmlUrl: obj.htmlUrl,
+      languages: obj.languages,
       lastSyncAt: obj.lastSyncAt?.toISOString(),
       syncStatus: obj.syncStatus,
       syncError: obj.syncError,
@@ -260,15 +263,15 @@ export class BackstageCatalogService {
 
   private async syncRepo(repoName: string, options: { force?: boolean }) {
     try {
-      const repo = await this.github.rest.repos.get({
+      const { data: repo } = (await this.github.rest.repos.get({
         owner: this.org,
         repo: repoName,
         mediaType: { previews: ['mercy'] },
-      });
-
-      this.logger.debug(`Repo data: ${JSON.stringify(repo)}`);
+      })) as { data: GithubRepository };
 
       const existing = await this.repoModel.findOne({ repoName }).exec();
+
+      const languages = await this.fetchLanguages(repoName);
 
       const readme = await this.fetchReadme(
         repoName,
@@ -297,10 +300,11 @@ export class BackstageCatalogService {
 
       const update: Partial<BackstageRepoCache> = {
         repoName,
-        description: repo.data.description ?? undefined,
-        topics: repo.data.topics ?? [],
-        defaultBranch: repo.data.default_branch,
-        htmlUrl: repo.data.html_url,
+        description: repo.description ?? undefined,
+        topics: repo.topics ?? [],
+        defaultBranch: repo.default_branch,
+        htmlUrl: repo.html_url,
+        languages,
         lastSyncAt: new Date(),
         readme,
         openapi,
@@ -362,6 +366,19 @@ export class BackstageCatalogService {
       };
     } catch (err) {
       if (err.status === 404) return null;
+      throw err;
+    }
+  }
+
+  private async fetchLanguages(repo: string): Promise<Record<string, number>> {
+    try {
+      const res = await this.github.rest.repos.getLanguages({
+        owner: this.org,
+        repo,
+      });
+      return res.data || {};
+    } catch (err) {
+      if (err.status === 404) return {};
       throw err;
     }
   }

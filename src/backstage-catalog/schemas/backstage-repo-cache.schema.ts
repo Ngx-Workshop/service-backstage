@@ -22,6 +22,9 @@ export class BackstageRepoCache extends Document {
   @Prop({ type: [String], default: [] })
   topics: string[];
 
+  @Prop({ type: Object })
+  languages?: Record<string, number>;
+
   @Prop() defaultBranch?: string;
 
   @Prop() htmlUrl?: string;

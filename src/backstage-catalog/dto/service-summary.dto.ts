@@ -12,6 +12,9 @@ export class ServiceSummaryDto {
 
   @ApiPropertyOptional() htmlUrl?: string;
 
+  @ApiPropertyOptional({ type: Object })
+  languages?: Record<string, number>;
+
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   lastSyncAt?: string;
 
