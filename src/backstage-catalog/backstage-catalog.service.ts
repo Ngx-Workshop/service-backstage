@@ -278,10 +278,8 @@ export class BackstageCatalogService {
       const languages = await this.fetchLanguages(repoName);
 
       const deviconLanguages = Object.keys(languages)
-        .map((lang) =>
-          programLanguageMap[lang.toLowerCase()] ? lang : undefined
-        )
-        .filter((lang): lang is string => !!lang);
+        .map((lang) => programLanguageMap[lang])
+        .filter((lang) => !!lang);
 
       const readme = await this.fetchReadme(
         repoName,
