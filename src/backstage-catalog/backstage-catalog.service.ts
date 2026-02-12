@@ -277,24 +277,9 @@ export class BackstageCatalogService {
 
       const languages = await this.fetchLanguages(repoName);
 
-      const deviconLanguages = Object.keys(languages).reduce((acc, lang) => {
-        const mapped = programLanguageMap[lang.toLowerCase()];
-        if (mapped) {
-          acc[mapped] = languages[lang];
-        }
-        return acc;
-      }, [] as string[]);
-
-      // const githubToDevicon = Object.fromEntries(
-      //   Object.entries(programLanguageMap).map(([devicon, github]) => [
-      //     github,
-      //     devicon,
-      //   ])
-      // );
-
-      // const deviconLanguages = languages.map(
-      //   (language) => githubToDevicon[language] ?? null
-      // );
+      const deviconLanguages = Object.keys(languages)
+        .map((lang) => programLanguageMap[lang.toLowerCase()])
+        .filter((lang): lang is string => !!lang);
 
       const readme = await this.fetchReadme(
         repoName,
