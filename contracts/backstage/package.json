@@ -26,5 +26,10 @@
     "openapi-typescript": "^7.5.1",
     "typescript": "^5.7.3",
     "openapi-typescript-codegen": "^0.29.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ngx-Workshop/service-backstage.git",
+    "directory": "contracts/backstage"
   }
 }

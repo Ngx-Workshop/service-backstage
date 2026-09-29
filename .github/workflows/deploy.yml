@@ -4,107 +4,220 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: service-backstage-production
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  publish:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-
-      - name: Setup Node (cache npm)
-        uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-          scope: '@tmdjr'
-          cache: 'npm'
+          persist-credentials: false
+
+      - name: Setup Node 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          check-latest: true
+          package-manager-cache: false
+
+      - name: Install publishing CLI
+        run: |
+          node - <<'NODE'
+          const [major, minor, patch] = process.versions.node.split('.').map(Number);
+          if (major !== 22 || minor < 22 || (minor === 22 && patch < 2)) {
+            throw new Error('npm 12.1.0 requires Node 22.22.2 or newer on Node 22');
+          }
+          NODE
+          npm install --global npm@12.1.0
 
       - name: Generate OpenAPI spec
         env:
           GENERATE_OPENAPI: 'true'
         run: |
-          npm install
+          npm ci
           npm run build
           npm run openapi
 
-      - name: Build contracts (backstage)
+      - name: Build contracts
+        working-directory: contracts/backstage
         run: |
-          cd contracts/backstage
-          npm install
+          npm ci
           npm run gen
           npm run build
 
-      - name: Configure npm auth
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-          scope: '@tmdjr'
-          always-auth: true
-
-      - name: Publish contracts to NPM (backstage)
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Set deterministic contract version
+        working-directory: contracts/backstage
         run: |
-          cd contracts/backstage
-
-          # Deterministic version: "<major>.<minor>.<github.run_number>"
           node - <<'NODE'
-          const fs = require('fs');
-          const pkgPath = './package.json';
-          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-          const [maj, min] = String(pkg.version).split('.');
-          const uniquePatch = process.env.GITHUB_RUN_NUMBER || '0';
-          pkg.version = `${maj}.${min}.${uniquePatch}`;
-          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
-          console.log('Publishing version', pkg.version);
+          const fs = require('node:fs');
+          const path = './package.json';
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+
+          if (pkg.name !== '@tmdjr/backstage-contracts') {
+            throw new Error('Unexpected contract package');
+          }
+
+          const [major, minor] = String(pkg.version).split('.');
+          const patch = process.env.GITHUB_RUN_NUMBER;
+          if (!/^\d+$/.test(patch || '')) {
+            throw new Error('Missing valid GitHub run number');
+          }
+
+          pkg.version = `${major}.${minor}.${patch}`;
+          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+          console.log('Publishing', pkg.name, pkg.version);
           NODE
 
-          npm publish --access public
-
       - name: Upload OpenAPI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: backstage-openapi
           path: openapi.json
+          if-no-files-found: error
 
-      - name: Copy to Droplet
-        uses: appleboy/scp-action@master
+      - name: Publish contracts using OIDC
+        working-directory: contracts/backstage
+        env:
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
+        run: npm publish --access public
+
+  deploy:
+    needs: publish
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+
+      - name: Prepare source and private runtime configuration
+        env:
+          PORT: ${{ secrets.PORT }}
+          AUTH_BASE_URL: ${{ secrets.AUTH_BASE_URL }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          WORKSHOP_GITHUB_TOKEN: ${{ secrets.WORKSHOP_GITHUB_TOKEN }}
+          SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          from urllib.parse import urlsplit, parse_qs
+
+          names = ("PORT", "AUTH_BASE_URL", "MONGODB_URI", "WORKSHOP_GITHUB_TOKEN")
+          for name in (*names, "SSH_HOST_FINGERPRINT"):
+              value = os.environ.get(name, "")
+              if not value or any(c in value for c in ("\r", "\n", "\0")):
+                  raise SystemExit(f"Missing or invalid {name}")
+
+          if os.environ["PORT"] != "3008":
+              raise SystemExit("PORT must be 3008 for this deployment")
+
+          try:
+              uri = urlsplit(os.environ["MONGODB_URI"])
+              valid = (
+                  uri.scheme == "mongodb"
+                  and uri.hostname == "10.116.0.2"
+                  and uri.port == 27017
+                  and uri.username == "workshop"
+                  and bool(uri.password)
+                  and uri.path == "/workshop-viewer"
+                  and parse_qs(uri.query).get("authSource") == ["workshop-viewer"]
+              )
+          except ValueError:
+              valid = False
+
+          if not valid:
+              raise SystemExit("MONGODB_URI does not match the restored private database")
+
+          path = Path(".env.next")
+          path.write_text(
+              "".join(f"{name}={os.environ[name]}\n" for name in names)
+          )
+          path.chmod(0o600)
+          PY
+
+          git archive --format=tar --output=deploy-source.tar HEAD
+
+      - name: Copy source and runtime configuration
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+        with:
+          version: '1.8.0'
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: '.'
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          source: 'deploy-source.tar,.env.next'
           target: '/opt/ngx-nestjs-services/backstage'
+          overwrite: true
 
-      - name: SSH and Deploy
-        uses: appleboy/ssh-action@master
+      - name: Build and recreate service
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
+          version: '1.8.2'
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          command_timeout: 20m
           script: |
+            set -eu
+            umask 077
             cd /opt/ngx-nestjs-services/backstage
+            trap 'rm -f .env.next deploy-source.tar' EXIT
 
-            echo "🌐 Ensuring shared Docker network exists..."
-            docker network ls | grep -q "ngx-net" || docker network create ngx-net
+            chmod 600 .env.next
+            tar -xf deploy-source.tar
+            rm -f deploy-source.tar
+            test -f .dockerignore
 
-            echo "🔑 Writing .env from GitHub secrets..."
-            echo "PORT=${{ secrets.PORT }}" > .env
-            echo "AUTH_BASE_URL=${{ secrets.AUTH_BASE_URL }}" >> .env
-            echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
-            echo "WORKSHOP_GITHUB_TOKEN=${{ secrets.WORKSHOP_GITHUB_TOKEN }}" >> .env
+            docker network inspect ngx-net >/dev/null 2>&1 || {
+              docker network create ngx-net ||
+                docker network inspect ngx-net >/dev/null
+            }
 
-            echo "🔗 Connecting peer services to ngx-net (ignore errors if not present)..."
             docker network connect ngx-net ngx-workshop-bff 2>/dev/null || true
             docker network connect ngx-net ngx-auth-service 2>/dev/null || true
 
-            echo "🚀 Building and starting container..."
             docker build -t backstage .
-            docker stop backstage || true
-            docker rm backstage || true
+
+            if docker container inspect backstage >/dev/null 2>&1; then
+              previous_image=$(docker inspect --format '{{.Image}}' backstage)
+              docker image tag "$previous_image" backstage:previous
+            fi
+            if [ -f .env ]; then
+              install -m 600 .env .env.previous
+            fi
+            install -m 600 .env.next .env
+            rm -f .env.next
+
+            if docker container inspect backstage >/dev/null 2>&1; then
+              docker stop backstage
+              docker rm backstage
+            fi
+
             docker run -d \
               --name backstage \
               --env-file .env \
@@ -112,3 +225,27 @@ jobs:
               --restart unless-stopped \
               -p 3008:3008 \
               backstage
+
+            attempt=0
+            until docker exec backstage node -e '
+              const net = require("node:net");
+              const socket = net.connect(3008, "127.0.0.1");
+              socket.setTimeout(2000);
+              socket.on("connect", () => {
+                socket.end();
+                process.exit(0);
+              });
+              socket.on("error", () => process.exit(1));
+              socket.on("timeout", () => process.exit(1));
+            ' >/dev/null 2>&1; do
+              attempt=$((attempt + 1))
+              if [ "$attempt" -ge 30 ]; then
+                echo "Service failed its startup check" >&2
+                exit 1
+              fi
+              sleep 2
+            done
+
+      - name: Remove temporary deployment files
+        if: always()
+        run: rm -f .env.next deploy-source.tar
