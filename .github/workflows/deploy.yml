@@ -109,6 +109,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Verify deployment cleanup policy
+        run: PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_cleanup_deployment.py
 
       - name: Prepare source and private runtime configuration
         env:
@@ -245,6 +247,9 @@ jobs:
               fi
               sleep 2
             done
+
+            # Readiness passed: retire rollback resources for this service only.
+            python3 scripts/cleanup-deployment.py backstage backstage
 
       - name: Remove temporary deployment files
         if: always()
