@@ -1,3 +1,4 @@
+import { ObservabilityModule } from './observability/observability.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -18,6 +19,7 @@ const DB_IMPORTS =
 
 @Module({
   imports: [
+    ObservabilityModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
