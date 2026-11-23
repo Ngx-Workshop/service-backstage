@@ -53,3 +53,5 @@ auth/use-case doubles. They are not live MongoDB/GitHub/auth integration.
 Build/offline OpenAPI, format and selected changed-file lint pass. Full lint has
 recorded baseline debt; Node 22 hosted CI, actual Docker image startup and live
 Grafana ingestion remain pending. See [handoff](../specs/001-code-maintenance/handoff.md).
+
+Generated deployment orchestration is centrally managed by the Node CLI; see [deployment-workflows](deployment-workflows.md).

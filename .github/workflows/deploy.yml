@@ -1,124 +1,90 @@
-name: Deploy Ngx backstage
-
+# Managed by ngx-workshop CLI. Policy v1; edit the central CLI profile, then run workflows --apply.
+name: "Verify, deploy and manually publish service-backstage"
 on:
+  pull_request:
+    branches:
+      - "main"
   push:
     branches:
-      - main
+      - "main"
   workflow_dispatch:
-
+    inputs:
+      operation:
+        description: "Manual operation (main only); pushes verify and deploy automatically"
+        type: "choice"
+        required: true
+        default: "verify"
+        options:
+          - "verify"
+          - "deploy"
+          - "publish"
 permissions:
-  contents: read
-
-concurrency:
-  group: service-backstage-production
-  cancel-in-progress: false
-
+  contents: "read"
 jobs:
-  publish:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  validate:
     permissions:
-      contents: read
-      id-token: write
-
+      contents: "read"
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: "Checkout"
+        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
         with:
           persist-credentials: false
-
-      - name: Setup Node 22
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: "Setup Node 22"
+        uses: "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020"
         with:
-          node-version: '22.23.5'
+          node-version: "22.23.5"
           check-latest: true
           package-manager-cache: false
-
-      - name: Install publishing CLI
-        run: |
-          node - <<'NODE'
-          const [major, minor, patch] = process.versions.node.split('.').map(Number);
-          if (major !== 22 || minor < 22 || (minor === 22 && patch < 2)) {
-            throw new Error('npm 12.1.0 requires Node 22.22.2 or newer on Node 22');
-          }
-          NODE
-          npm install --global npm@12.1.0
-
-      - name: Generate OpenAPI spec
+      - name: "Generate OpenAPI spec"
         env:
-          GENERATE_OPENAPI: 'true'
+          GENERATE_OPENAPI: "true"
         run: |
           npm ci
+          npm run format:check
+          npm run lint:check
+          GENERATE_OPENAPI=false npm test -- --runInBand
           npm run build
           npm run openapi
-
-      - name: Build contracts
-        working-directory: contracts/backstage
+      - name: "Build contracts"
+        working-directory: "contracts/backstage"
         run: |
           npm ci
           npm run gen
           npm run build
-
-      - name: Set deterministic contract version
-        working-directory: contracts/backstage
-        run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const path = './package.json';
-          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-
-          if (pkg.name !== '@tmdjr/backstage-contracts') {
-            throw new Error('Unexpected contract package');
-          }
-
-          const [major, minor] = String(pkg.version).split('.');
-          const patch = process.env.GITHUB_RUN_NUMBER;
-          if (!/^\d+$/.test(patch || '')) {
-            throw new Error('Missing valid GitHub run number');
-          }
-
-          pkg.version = `${major}.${minor}.${patch}`;
-          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-          console.log('Publishing', pkg.name, pkg.version);
-          NODE
-
-      - name: Upload OpenAPI artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - name: "Upload OpenAPI artifact"
+        uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
         with:
-          name: backstage-openapi
-          path: openapi.json
-          if-no-files-found: error
-
-      - name: Publish contracts using OIDC
-        working-directory: contracts/backstage
-        env:
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
-        run: npm publish --access public
-
+          name: "backstage-openapi"
+          path: "openapi.json"
+          if-no-files-found: "error"
+    env:
+      HUSKY: "0"
   deploy:
-    needs: publish
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    needs: "validate"
+    if: "github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.operation == 'deploy'))"
     permissions:
-      contents: read
-
+      contents: "read"
+    concurrency:
+      group: "service-backstage-production"
+      cancel-in-progress: false
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 30
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: "Checkout"
+        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
         with:
           persist-credentials: false
-      - name: Verify deployment cleanup policy
-        run: PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_cleanup_deployment.py
-
-      - name: Prepare source and private runtime configuration
+      - name: "Verify deployment cleanup policy"
+        run: "PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_cleanup_deployment.py"
+      - name: "Prepare source and private runtime configuration"
         env:
-          PORT: ${{ secrets.PORT }}
-          AUTH_BASE_URL: ${{ secrets.AUTH_BASE_URL }}
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          WORKSHOP_GITHUB_TOKEN: ${{ secrets.WORKSHOP_GITHUB_TOKEN }}
-          SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          PORT: "${{ secrets.PORT }}"
+          AUTH_BASE_URL: "${{ secrets.AUTH_BASE_URL }}"
+          MONGODB_URI: "${{ secrets.MONGODB_URI }}"
+          WORKSHOP_GITHUB_TOKEN: "${{ secrets.WORKSHOP_GITHUB_TOKEN }}"
+          SSH_HOST_FINGERPRINT: "${{ secrets.SSH_HOST_FINGERPRINT }}"
         run: |
           set -euo pipefail
           umask 077
@@ -162,28 +128,26 @@ jobs:
           PY
 
           git archive --format=tar --output=deploy-source.tar HEAD
-
-      - name: Copy source and runtime configuration
-        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+      - name: "Copy source and runtime configuration"
+        uses: "appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345"
         with:
-          version: '1.8.0'
-          host: ${{ secrets.DROPLET_IP }}
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          source: 'deploy-source.tar,.env.next'
-          target: '/opt/ngx-nestjs-services/backstage'
+          version: "1.8.0"
+          host: "${{ secrets.DROPLET_IP }}"
+          username: "root"
+          key: "${{ secrets.SSH_PRIVATE_KEY }}"
+          fingerprint: "${{ secrets.SSH_HOST_FINGERPRINT }}"
+          source: "deploy-source.tar,.env.next"
+          target: "/opt/ngx-nestjs-services/backstage"
           overwrite: true
-
-      - name: Build and recreate service
-        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+      - name: "Build and recreate service"
+        uses: "appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2"
         with:
-          version: '1.8.2'
-          host: ${{ secrets.DROPLET_IP }}
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          command_timeout: 20m
+          version: "1.8.2"
+          host: "${{ secrets.DROPLET_IP }}"
+          username: "root"
+          key: "${{ secrets.SSH_PRIVATE_KEY }}"
+          fingerprint: "${{ secrets.SSH_HOST_FINGERPRINT }}"
+          command_timeout: "20m"
           script: |
             set -eu
             umask 077
@@ -250,7 +214,87 @@ jobs:
 
             # Readiness passed: retire rollback resources for this service only.
             python3 scripts/cleanup-deployment.py backstage backstage
+      - name: "Remove temporary deployment files"
+        if: "always()"
+        run: "rm -f .env.next deploy-source.tar"
+    env:
+      HUSKY: "0"
+  publish:
+    needs: "validate"
+    if: "github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'publish'"
+    permissions:
+      contents: "read"
+      id-token: "write"
+    concurrency:
+      group: "service-backstage-publish"
+      cancel-in-progress: false
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 20
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        with:
+          persist-credentials: false
+      - name: "Setup Node 22"
+        uses: "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020"
+        with:
+          node-version: "22.23.5"
+          check-latest: true
+          package-manager-cache: false
+      - name: "Install publishing CLI"
+        run: |
+          node - <<'NODE'
+          const [major, minor, patch] = process.versions.node.split('.').map(Number);
+          if (major !== 22 || minor < 22 || (minor === 22 && patch < 2)) {
+            throw new Error('npm 12.1.0 requires Node 22.22.2 or newer on Node 22');
+          }
+          NODE
+          npm install --global npm@12.1.0
+      - name: "Generate OpenAPI spec"
+        env:
+          GENERATE_OPENAPI: "true"
+        run: |
+          npm ci
+          npm run build
+          npm run openapi
+      - name: "Build contracts"
+        working-directory: "contracts/backstage"
+        run: |
+          npm ci
+          npm run gen
+          npm run build
+      - name: "Set deterministic contract version"
+        working-directory: "contracts/backstage"
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = './package.json';
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
 
-      - name: Remove temporary deployment files
-        if: always()
-        run: rm -f .env.next deploy-source.tar
+          if (pkg.name !== '@tmdjr/backstage-contracts') {
+            throw new Error('Unexpected contract package');
+          }
+
+          const [major, minor] = String(pkg.version).split('.');
+          const patch = process.env.GITHUB_RUN_NUMBER;
+          if (!/^\d+$/.test(patch || '')) {
+            throw new Error('Missing valid GitHub run number');
+          }
+
+          pkg.version = `${major}.${minor}.${patch}`;
+          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+          console.log('Publishing', pkg.name, pkg.version);
+          NODE
+      - name: "Upload OpenAPI artifact"
+        uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+        with:
+          name: "backstage-openapi"
+          path: "openapi.json"
+          if-no-files-found: "error"
+      - name: "Publish contracts using OIDC"
+        working-directory: "contracts/backstage"
+        env:
+          NPM_CONFIG_REGISTRY: "https://registry.npmjs.org"
+        run: "npm publish --access public"
+    env:
+      HUSKY: "0"

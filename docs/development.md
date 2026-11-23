@@ -79,3 +79,5 @@ so neither an actual image build nor Node 22 runtime/hosted CI is claimed.
 No live MongoDB/GitHub/Grafana check was performed. Do not use production writes
 as tests. Exact commands and remaining owner actions:
 [audit](../specs/001-code-maintenance/audit.md) / [handoff](../specs/001-code-maintenance/handoff.md).
+
+Deployment and npm publication now follow [deployment-workflows](deployment-workflows.md).

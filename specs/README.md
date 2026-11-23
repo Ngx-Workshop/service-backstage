@@ -13,3 +13,5 @@ See the audit/handoff for completed T001-T005/T007-T010 evidence and the exact
 remaining T006/owner actions. No other feature has been selected as next.
 
 Follow the [local workflow](../.specify/README.md). Keep historical records.
+
+- [002-deployment-management](002-deployment-management/spec.md): Implemented locally; automatic verification/deployment, manual publication.
