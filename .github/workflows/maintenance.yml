@@ -30,4 +30,6 @@ jobs:
       - run: npm run test:e2e -- --runInBand
       - run: npm run test:maintenance
       - run: npm run build
+        env:
+          GENERATE_OPENAPI: 'true'
       - run: npm run lint:check
