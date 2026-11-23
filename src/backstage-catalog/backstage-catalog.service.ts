@@ -3,15 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import * as yaml from 'js-yaml';
 import { Model } from 'mongoose';
-import { Octokit } from 'octokit';
+import type { Octokit } from 'octokit';
 import pLimit from 'p-limit';
+import { randomUUID } from 'node:crypto';
+import { getRequestId } from '../observability/observability';
 import {
   ListServicesQueryDto,
   ServiceDetailQueryDto,
 } from './dto/list-services-query.dto';
 import { ServiceDetailDto, ServiceSummaryDto } from './dto/service-summary.dto';
 import { SyncRequestDto, SyncResponseDto } from './dto/sync.dto';
-import { GithubRepository } from './github.interface';
+import { GITHUB_CLIENT_TOKEN, GithubRepository } from './github.interface';
 import {
   BackstageRepoCache,
   BackstageRepoCacheDocument,
@@ -21,7 +23,7 @@ import {
 
 import { programLanguageMap } from './data/program-language-map';
 
-export const GITHUB_CLIENT_TOKEN = 'GITHUB_CLIENT_TOKEN';
+export { GITHUB_CLIENT_TOKEN } from './github.interface';
 
 const OPENAPI_PATHS = [
   'docs/openapi.yaml',
@@ -118,7 +120,7 @@ export class BackstageCatalogService {
       throw new NotFoundException(`Repo ${repo} not found in cache`);
     }
 
-    const blob = (doc as any)[field] as DocBlob | null | undefined;
+    const blob = doc[field];
     if (!blob) {
       throw new NotFoundException(`${field} not available for ${repo}`);
     }
@@ -215,18 +217,23 @@ export class BackstageCatalogService {
     force?: boolean;
   }): Promise<SyncResponseDto> {
     const start = Date.now();
-    const repoNames = options.repos ?? (await this.discoverRepos());
+    const runId = randomUUID();
+    const repoNames = options.repos ?? (await this.discoverRepos(runId));
     const limit = pLimit(this.concurrency);
 
     let succeeded = 0;
+    let observedFailures = 0;
+    let stoppedEarly = false;
     const failures: string[] = [];
 
     const tasks = repoNames.map((repo) =>
       limit(async () => {
         try {
-          await this.syncRepo(repo, { force: options.force });
+          const ok = await this.syncRepo(repo, { force: options.force, runId });
+          if (!ok) observedFailures++;
           succeeded += 1;
         } catch (err) {
+          observedFailures++;
           if (this.isRateLimitError(err)) {
             failures.push(`${repo}: rate limited`);
             throw err;
@@ -238,11 +245,29 @@ export class BackstageCatalogService {
 
     try {
       await Promise.all(tasks);
-    } catch (err) {
-      this.logger.warn('Sync stopped early due to rate limit');
+    } catch {
+      stoppedEarly = true;
     }
 
     const total = repoNames.length;
+    const entry = {
+      event: 'catalog_sync',
+      outcome: stoppedEarly
+        ? 'rate_limited'
+        : observedFailures
+          ? 'partial'
+          : 'ok',
+      runId,
+      requestId: getRequestId(),
+      total,
+      observedFailures,
+      reportedSucceeded: succeeded,
+      reportedFailed: failures.length,
+      durationMs: Date.now() - start,
+      stoppedEarly,
+    };
+    if (observedFailures) this.logger.warn(entry);
+    else this.logger.log(entry);
     return {
       total,
       succeeded,
@@ -252,7 +277,8 @@ export class BackstageCatalogService {
     };
   }
 
-  private async discoverRepos(): Promise<string[]> {
+  private async discoverRepos(runId: string): Promise<string[]> {
+    const start = Date.now();
     try {
       const repos = await this.github.paginate('GET /orgs/{org}/repos', {
         org: this.org,
@@ -260,12 +286,24 @@ export class BackstageCatalogService {
       });
       return repos.map((r: any) => r.name).filter(Boolean);
     } catch (err) {
-      this.logger.error(`Failed to list repos for org ${this.org}: ${err}`);
+      this.logger.error({
+        event: 'catalog_discovery',
+        outcome: 'failed',
+        runId,
+        requestId: getRequestId(),
+        upstreamStatus: this.safeErrorStatus(err),
+        durationMs: Date.now() - start,
+      });
       throw err;
     }
   }
 
-  private async syncRepo(repoName: string, options: { force?: boolean }) {
+  private async syncRepo(
+    repoName: string,
+    options: { force?: boolean; runId?: string }
+  ): Promise<boolean> {
+    const start = Date.now();
+    const runId = options.runId ?? randomUUID();
     try {
       const { data: repo } = (await this.github.rest.repos.get({
         owner: this.org,
@@ -330,16 +368,35 @@ export class BackstageCatalogService {
           setDefaultsOnInsert: true,
         })
         .exec();
+      if (!options.runId) {
+        this.logger.log({
+          event: 'catalog_repo_sync',
+          outcome: 'ok',
+          requestId: getRequestId(),
+          runId,
+          durationMs: Date.now() - start,
+        });
+      }
+      return true;
     } catch (err) {
       const rateLimited = this.isRateLimitError(err);
       const status = rateLimited ? 'rate_limited' : 'failed';
-      this.logger.warn(`Sync failed for ${repoName}: ${err?.message}`);
+      if (!options.runId) {
+        this.logger.warn({
+          event: 'catalog_repo_sync',
+          outcome: status,
+          requestId: getRequestId(),
+          runId,
+          upstreamStatus: this.safeErrorStatus(err),
+          durationMs: Date.now() - start,
+        });
+      }
       await this.repoModel
         .findOneAndUpdate(
           { repoName },
           {
             repoName,
-            syncStatus: status as any,
+            syncStatus: status,
             syncError: err?.message,
             lastSyncAt: new Date(),
           },
@@ -349,6 +406,7 @@ export class BackstageCatalogService {
       if (rateLimited) {
         throw err;
       }
+      return false;
     }
   }
 
@@ -460,8 +518,13 @@ export class BackstageCatalogService {
       }
       const parsed = yaml.load(content) as Record<string, any>;
       return !!parsed && typeof parsed === 'object' && 'openapi' in parsed;
-    } catch (err) {
-      this.logger.debug(`Failed to parse OpenAPI: ${err?.message}`);
+    } catch {
+      this.logger.debug({
+        event: 'catalog_document_rejected',
+        reason: 'invalid_openapi',
+        format,
+        requestId: getRequestId(),
+      });
       return false;
     }
   }
@@ -480,8 +543,13 @@ export class BackstageCatalogService {
         return true;
       }
       return true;
-    } catch (err) {
-      this.logger.debug(`Failed to parse structured content: ${err?.message}`);
+    } catch {
+      this.logger.debug({
+        event: 'catalog_document_rejected',
+        reason: 'invalid_structured_content',
+        format,
+        requestId: getRequestId(),
+      });
       return false;
     }
   }
@@ -492,5 +560,19 @@ export class BackstageCatalogService {
     if (status === 403 || status === 429) return true;
     const message: string = err.message || '';
     return /rate limit/i.test(message);
+  }
+
+  private safeErrorStatus(error: unknown): number | undefined {
+    if (!error || typeof error !== 'object') return undefined;
+    const status = 'status' in error ? error.status : undefined;
+    if (
+      typeof status === 'number' &&
+      Number.isInteger(status) &&
+      status >= 100 &&
+      status <= 599
+    ) {
+      return status;
+    }
+    return undefined;
   }
 }

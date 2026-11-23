@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+contracts/
+openapi.json
+*.tsbuildinfo
+scripts/*.json
+scripts/languages.yml
+.husky/_/

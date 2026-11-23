@@ -1,3 +1,5 @@
+export const GITHUB_CLIENT_TOKEN = 'GITHUB_CLIENT_TOKEN';
+
 export interface GithubRepository {
   id: number;
   node_id: string;

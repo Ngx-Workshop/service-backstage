@@ -29,7 +29,10 @@ describe('BackstageCatalogController', () => {
         { provide: BackstageCatalogService, useValue: service },
         { provide: RemoteAuthGuard, useValue: { canActivate: () => true } },
       ],
-    }).compile();
+    })
+      .overrideGuard(RemoteAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     const controller = moduleRef.get(BackstageCatalogController);
 

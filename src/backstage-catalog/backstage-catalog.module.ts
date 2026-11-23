@@ -1,13 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { MongooseModule, getModelToken } from '@nestjs/mongoose';
 import { NgxAuthClientModule, RemoteAuthGuard } from '@tmdjr/ngx-auth-client';
-import { Octokit } from 'octokit';
 import { BackstageCatalogController } from './backstage-catalog.controller';
-import {
-  BackstageCatalogService,
-  GITHUB_CLIENT_TOKEN,
-} from './backstage-catalog.service';
+import { BackstageCatalogService } from './backstage-catalog.service';
+import { githubClientProvider } from './github-client.provider';
 import {
   BackstageRepoCache,
   BackstageRepoCacheSchema,
@@ -40,31 +37,6 @@ const FAKE_PROVIDERS =
 @Module({
   imports: [ConfigModule, NgxAuthClientModule, ...SCHEMA_IMPORTS],
   controllers: [BackstageCatalogController],
-  providers: [
-    BackstageCatalogService,
-    ...FAKE_PROVIDERS,
-    {
-      provide: GITHUB_CLIENT_TOKEN,
-      useFactory: (config: ConfigService) => {
-        if (process.env.GENERATE_OPENAPI === 'true') {
-          return {
-            rest: { repos: {} },
-            paginate: async () => [],
-          } as unknown as Octokit;
-        }
-        const token = config.get<string>('WORKSHOP_GITHUB_TOKEN');
-        if (!token) {
-          throw new Error(
-            'WORKSHOP_GITHUB_TOKEN is required to sync backstage repos'
-          );
-        }
-        return new Octokit({
-          auth: token,
-          request: { timeout: 10000 },
-        });
-      },
-      inject: [ConfigService],
-    },
-  ],
+  providers: [BackstageCatalogService, ...FAKE_PROVIDERS, githubClientProvider],
 })
 export class BackstageCatalogModule {}

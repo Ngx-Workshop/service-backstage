@@ -4,13 +4,19 @@ import { Test } from '@nestjs/testing';
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- Match callable Supertest in CommonJS service builds.
 import request = require('supertest');
 import { ObservabilityModule } from './observability.module';
-import { createServiceLogger, httpLoggingMiddleware } from './observability';
+import {
+  createServiceLogger,
+  getRequestId,
+  httpLoggingMiddleware,
+} from './observability';
 
 @Controller('items')
 class TestController {
   @Get(':id')
-  get() {
-    return { ok: true };
+  async get() {
+    const before = getRequestId();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    return { ok: true, before, after: getRequestId() };
   }
 }
 
@@ -87,6 +93,34 @@ describe('Service observability', () => {
       .expect(404);
     expect(warn).toHaveBeenCalled();
     expect(JSON.stringify(warn.mock.calls)).not.toContain('private-body');
+  });
+
+  it('isolates concurrent async context and never trusts incoming IDs', async () => {
+    const responses = await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        request(app.getHttpServer())
+          .get(`/items/${index}`)
+          .set('X-Request-ID', 'private-attacker-supplied')
+          .expect(200)
+      )
+    );
+    const ids = responses.map((response) => {
+      const id: unknown = response.headers['x-request-id'];
+      expect(id).toMatch(/^[0-9a-f-]{36}$/);
+      expect(response.body).toEqual({ ok: true, before: id, after: id });
+      return id;
+    });
+    expect(new Set(ids).size).toBe(8);
+    expect(getRequestId()).toBeUndefined();
+    expect(JSON.stringify(log.mock.calls)).not.toContain('private-');
+  });
+
+  it('keeps HEAD health polls quiet', async () => {
+    await request(app.getHttpServer()).head('/health').expect(200);
+    expect(log).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    expect(getRequestId()).toBeUndefined();
   });
 
   it('uses native Nest JSON logging with a contextual, structured message', () => {
